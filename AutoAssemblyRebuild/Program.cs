@@ -56,26 +56,12 @@ namespace AutoAssemblyRebuild
                     }
                     firstFeature = (Feature)firstFeature.GetNextFeature();
                 }
-                // replace any negation in the assembly config.txt file with positive values
-                for (var i = 0; i < assemblyConfigLines.Length; ++i)
-                {
-                    if (assemblyConfigLines[i].Contains("-") && assemblyConfigLines[i].Contains("in"))
-                    {
-                        assemblyConfigLines[i] = assemblyConfigLines[i].Replace("-", "");
-                    }
-                }
-                var newContent = "";
-                foreach (string line in assemblyConfigLines)
-                {
-                    newContent += line + "\n";
-                }
+                
 
-                System.IO.File.WriteAllText(assemblyConfigPath, newContent);
-
-                Thread.Sleep(2_000);
+                Thread.Sleep(1_000);
             }
 
-            model.ForceRebuild3(false);
+            model.ForceRebuild3(true);
         }
     }
 }
