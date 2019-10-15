@@ -16,7 +16,7 @@ namespace AutoAssemblyRebuild
             // read rebuil.txt app data file
             var rebuildAppDataPath = @"C:\Users\bolinger\Documents\SolidWorks Projects\Prefab Blob - Cover Blob\app data\rebuild.txt";
             var rebuildAppDataLines = System.IO.File.ReadAllLines(rebuildAppDataPath);
-            var assemblyConfigPath = @rebuildAppDataLines[0];
+            var assemblyConfigPath = rebuildAppDataLines[0];
             var assemblyConfigLines = System.IO.File.ReadAllLines(assemblyConfigPath);
 
             // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
@@ -56,7 +56,9 @@ namespace AutoAssemblyRebuild
                     }
                     firstFeature = (Feature)firstFeature.GetNextFeature();
                 }
-                
+
+                // remove the listed mates so it doesn't flip them again
+                System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
 
                 Thread.Sleep(1_000);
             }
