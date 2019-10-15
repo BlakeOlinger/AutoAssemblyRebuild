@@ -44,9 +44,7 @@ namespace AutoAssemblyRebuild
                             {
                                 if (dimension == mateName)
                                 {
-                                    Console.WriteLine(mate.Flipped);
                                     mate.Flipped = !mate.Flipped;
-                                    Console.WriteLine(mate.Flipped);
                                 }
                             }
 
