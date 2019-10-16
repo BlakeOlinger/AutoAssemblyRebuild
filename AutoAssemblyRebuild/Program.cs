@@ -124,6 +124,10 @@ namespace AutoAssemblyRebuild
             }
             
             model.ForceRebuild3(true);
+
+            Thread.Sleep(500);
+
+            model.ForceRebuild3(true);
         }
     }
 }
