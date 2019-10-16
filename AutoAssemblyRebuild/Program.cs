@@ -10,7 +10,8 @@ namespace AutoAssemblyRebuild
         {
             var swInstance = new SldWorks.SldWorks();
             var model = (ModelDoc2)swInstance.ActiveDoc;
-
+            // TODO - for the assembly rebuild daemon - if a feature is flipped write to the assembly config
+            //  - the current state if it's opposite - for this program that variable is read-only again
             var matesToFlip = new string[] { };
 
             // read rebuil.txt app data file
@@ -18,6 +19,69 @@ namespace AutoAssemblyRebuild
             var rebuildAppDataLines = System.IO.File.ReadAllLines(rebuildAppDataPath);
             var assemblyConfigPath = rebuildAppDataLines[0];
             var assemblyConfigLines = System.IO.File.ReadAllLines(assemblyConfigPath);
+
+            // get correlated X/Z negation state for hole # and affect X or Z values
+            // for that hole number flip the negation state on the assembly config file
+            // up to both the X and Z values for that hole number can be flipped
+            var holeNumber = "";
+            var flipX = false;
+            var flipZ = false;
+            foreach (string appDataLine in rebuildAppDataLines) {
+                foreach (string line in assemblyConfigLines)
+                {
+                    if (line.Contains(appDataLine) && !flipX)
+                    {
+                        if (line.Contains("X"))
+                        {
+                            flipX = true;
+
+                            holeNumber = line.Split('=')[1].Split(' ')[2].Trim();
+                        }
+                    }
+
+                    if (line.Contains(appDataLine) && !flipZ) { 
+                        if (line.Contains("Z"))
+                        {
+                            flipZ = true;
+                            holeNumber = line.Split('=')[1].Split(' ')[2].Trim();
+                        }
+                    }
+                }
+            }
+
+            // read assembly file and generate the flipped negation state output
+            if (flipX || flipZ)
+            {
+                for (var i = 0; i < assemblyConfigLines.Length; ++i)
+                {
+                    if (assemblyConfigLines[i].Contains("Negative"))
+                    {
+                        if (flipX && assemblyConfigLines[i].Contains("X"))
+                        {
+                            var lineSegments = assemblyConfigLines[i].Split('=');
+                            var currentState = lineSegments[1];
+                            var newLine = lineSegments[0] + "= " + 
+                                (currentState.Contains("1") ? "0" : "1");
+                            assemblyConfigLines[i] = newLine;
+                        } else if (flipZ && assemblyConfigLines[i].Contains("Z"))
+                        {
+                            var lineSegments = assemblyConfigLines[i].Split('=');
+                            var currentState = lineSegments[1];
+                            var newLine = lineSegments[0] + "= " +
+                                (currentState.Contains("1") ? "0" : "1");
+                            assemblyConfigLines[i] = newLine;
+                        }
+                    }
+                }
+            }
+
+            // write to assembly file
+            var builder = "";
+            foreach (string line in assemblyConfigLines)
+            {
+                builder += line + "\n";
+            }
+            System.IO.File.WriteAllText(assemblyConfigPath, builder);
 
             // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
             if (rebuildAppDataLines.Length > 1)
@@ -54,13 +118,11 @@ namespace AutoAssemblyRebuild
                     }
                     firstFeature = (Feature)firstFeature.GetNextFeature();
                 }
-
+                
                 // remove the listed mates so it doesn't flip them again
                 System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
-
-                Thread.Sleep(1_000);
             }
-
+            
             model.ForceRebuild3(true);
         }
     }
