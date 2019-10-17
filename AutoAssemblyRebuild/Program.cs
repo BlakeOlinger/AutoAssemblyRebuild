@@ -8,6 +8,7 @@ namespace AutoAssemblyRebuild
     {
         static void Main(string[] args)
         {
+            var NO_ERROR = true;
             var swInstance = new SldWorks.SldWorks();
             var model = (ModelDoc2)swInstance.ActiveDoc;
             // TODO - for the assembly rebuild daemon - if a feature is flipped write to the assembly config
@@ -48,7 +49,7 @@ namespace AutoAssemblyRebuild
                     }
                 }
             }
-
+            
             // read assembly file and generate the flipped negation state output
             if (flipX || flipZ)
             {
@@ -81,57 +82,78 @@ namespace AutoAssemblyRebuild
             {
                 builder += line + "\n";
             }
-            System.IO.File.WriteAllText(assemblyConfigPath, builder);
-
-            // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
-            if (rebuildAppDataLines.Length >= 2)
+            NO_ERROR = flagIfEmptyLines(builder);
+            if (NO_ERROR)
             {
-                if (rebuildAppDataLines[1].Contains("Distance"))
+                //System.IO.File.WriteAllText(assemblyConfigPath, builder);
+            }
+
+           // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
+           if (rebuildAppDataLines.Length >= 2)
                 {
-                    matesToFlip = new string[rebuildAppDataLines.Length - 1];
-                    for (var i = 1; i < rebuildAppDataLines.Length; ++i)
+                    if (rebuildAppDataLines[1].Contains("Distance"))
                     {
-                        matesToFlip[i - 1] = rebuildAppDataLines[i];
-                    }
-                    // flips the mate if the X/Z offset is negative relative to current position
-                    var cutOff = 5_000;
-                    var firstFeature = (Feature)model.FirstFeature();
-                    while (firstFeature != null && cutOff-- > 0)
-                    {
-                        if ("MateGroup" == firstFeature.GetTypeName())
+                        matesToFlip = new string[rebuildAppDataLines.Length - 1];
+                        for (var i = 1; i < rebuildAppDataLines.Length; ++i)
                         {
-                            var mateGroup = (Feature)firstFeature.GetFirstSubFeature();
-                            var index = 0;
-                            while (mateGroup != null)
-                            {
-                                var mate = (Mate2)mateGroup.GetSpecificFeature2();
-                                var mateName = mateGroup.Name;
-                                foreach (string dimension in matesToFlip)
-                                {
-                                    if (dimension == mateName)
-                                    {
-                                        mate.Flipped = !mate.Flipped;
-                                    }
-                                }
-
-                                mateGroup = (Feature)mateGroup.GetNextSubFeature();
-                                ++index;
-                            }
+                            matesToFlip[i - 1] = rebuildAppDataLines[i];
                         }
-                        firstFeature = (Feature)firstFeature.GetNextFeature();
-                    }
+                        // flips the mate if the X/Z offset is negative relative to current position
+                        var cutOff = 5_000;
+                        var firstFeature = (Feature)model.FirstFeature();
+                        while (firstFeature != null && cutOff-- > 0)
+                        {
+                            if ("MateGroup" == firstFeature.GetTypeName())
+                            {
+                                var mateGroup = (Feature)firstFeature.GetFirstSubFeature();
+                                var index = 0;
+                                while (mateGroup != null)
+                                {
+                                    var mate = (Mate2)mateGroup.GetSpecificFeature2();
+                                    var mateName = mateGroup.Name;
+                                    foreach (string dimension in matesToFlip)
+                                    {
+                                        if (dimension == mateName)
+                                        {
+                                            mate.Flipped = !mate.Flipped;
+                                        }
+                                    }
 
-                    // remove the listed mates so it doesn't flip them again
-                    System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
+                                    mateGroup = (Feature)mateGroup.GetNextSubFeature();
+                                    ++index;
+                                }
+                            }
+                            firstFeature = (Feature)firstFeature.GetNextFeature();
+                        }
+
+                        // remove the listed mates so it doesn't flip them again
+                        System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
+                    }
+                }
+
+           //model.ForceRebuild3(true);
+
+           //Thread.Sleep(500);
+
+           //model.ForceRebuild3(true);
+        }
+
+        static bool flagIfEmptyLines(String output)
+        {
+            var lines = output.Split('\n');
+            var isBool = false;
+            foreach (string line in lines)
+            {
+                if (line.Length == 0)
+                {
+                    Console.WriteLine("ERROR: EMPTY LINE");
+                     isBool = false;
+                } else
+                {
+                     isBool = true;
                 }
             }
-            
-            model.ForceRebuild3(true);
-
-            Thread.Sleep(500);
-
-            model.ForceRebuild3(true);
-                
+            return isBool;
         }
     }
 }
