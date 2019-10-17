@@ -84,43 +84,46 @@ namespace AutoAssemblyRebuild
             System.IO.File.WriteAllText(assemblyConfigPath, builder);
 
             // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
-            if (rebuildAppDataLines.Length > 1)
+            if (rebuildAppDataLines.Length >= 2)
             {
-                matesToFlip = new string[rebuildAppDataLines.Length - 1];
-                for (var i = 1; i < rebuildAppDataLines.Length; ++i)
+                if (rebuildAppDataLines[1].Contains("Distance"))
                 {
-                    matesToFlip[i - 1] = rebuildAppDataLines[i];
-                }
-                // flips the mate if the X/Z offset is negative relative to current position
-                var cutOff = 5_000;
-                var firstFeature = (Feature)model.FirstFeature();
-                while (firstFeature != null && cutOff-- > 0)
-                {
-                    if ("MateGroup" == firstFeature.GetTypeName())
+                    matesToFlip = new string[rebuildAppDataLines.Length - 1];
+                    for (var i = 1; i < rebuildAppDataLines.Length; ++i)
                     {
-                        var mateGroup = (Feature)firstFeature.GetFirstSubFeature();
-                        var index = 0;
-                        while (mateGroup != null)
-                        {
-                            var mate = (Mate2)mateGroup.GetSpecificFeature2();
-                            var mateName = mateGroup.Name;
-                            foreach (string dimension in matesToFlip)
-                            {
-                                if (dimension == mateName)
-                                {
-                                    mate.Flipped = !mate.Flipped;
-                                }
-                            }
-
-                            mateGroup = (Feature)mateGroup.GetNextSubFeature();
-                            ++index;
-                        }
+                        matesToFlip[i - 1] = rebuildAppDataLines[i];
                     }
-                    firstFeature = (Feature)firstFeature.GetNextFeature();
+                    // flips the mate if the X/Z offset is negative relative to current position
+                    var cutOff = 5_000;
+                    var firstFeature = (Feature)model.FirstFeature();
+                    while (firstFeature != null && cutOff-- > 0)
+                    {
+                        if ("MateGroup" == firstFeature.GetTypeName())
+                        {
+                            var mateGroup = (Feature)firstFeature.GetFirstSubFeature();
+                            var index = 0;
+                            while (mateGroup != null)
+                            {
+                                var mate = (Mate2)mateGroup.GetSpecificFeature2();
+                                var mateName = mateGroup.Name;
+                                foreach (string dimension in matesToFlip)
+                                {
+                                    if (dimension == mateName)
+                                    {
+                                        mate.Flipped = !mate.Flipped;
+                                    }
+                                }
+
+                                mateGroup = (Feature)mateGroup.GetNextSubFeature();
+                                ++index;
+                            }
+                        }
+                        firstFeature = (Feature)firstFeature.GetNextFeature();
+                    }
+
+                    // remove the listed mates so it doesn't flip them again
+                    System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
                 }
-                
-                // remove the listed mates so it doesn't flip them again
-                System.IO.File.WriteAllText(rebuildAppDataPath, assemblyConfigPath);
             }
             
             model.ForceRebuild3(true);
@@ -128,6 +131,7 @@ namespace AutoAssemblyRebuild
             Thread.Sleep(500);
 
             model.ForceRebuild3(true);
+                
         }
     }
 }
