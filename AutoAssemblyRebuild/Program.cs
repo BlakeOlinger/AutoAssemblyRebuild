@@ -8,11 +8,9 @@ namespace AutoAssemblyRebuild
     {
         static void Main(string[] args)
         {
-            var NO_ERROR = true;
             var swInstance = new SldWorks.SldWorks();
             var model = (ModelDoc2)swInstance.ActiveDoc;
-            // TODO - for the assembly rebuild daemon - if a feature is flipped write to the assembly config
-            //  - the current state if it's opposite - for this program that variable is read-only again
+            
             var matesToFlip = new string[] { };
 
             // read rebuil.txt app data file
@@ -82,11 +80,8 @@ namespace AutoAssemblyRebuild
             {
                 builder += line + "\n";
             }
-            NO_ERROR = flagIfEmptyLines(builder);
-            if (NO_ERROR)
-            {
-                //System.IO.File.WriteAllText(assemblyConfigPath, builder);
-            }
+            
+           System.IO.File.WriteAllText(assemblyConfigPath, builder);
 
            // if rebuild app data contains a dimension list - creates a new array for the mates that need to be flipped
            if (rebuildAppDataLines.Length >= 2)
@@ -131,29 +126,11 @@ namespace AutoAssemblyRebuild
                     }
                 }
 
-           //model.ForceRebuild3(true);
+           model.ForceRebuild3(true);
 
-           //Thread.Sleep(500);
+           Thread.Sleep(500);
 
-           //model.ForceRebuild3(true);
-        }
-
-        static bool flagIfEmptyLines(String output)
-        {
-            var lines = output.Split('\n');
-            var isBool = false;
-            foreach (string line in lines)
-            {
-                if (line.Length == 0)
-                {
-                    Console.WriteLine("ERROR: EMPTY LINE");
-                     isBool = false;
-                } else
-                {
-                     isBool = true;
-                }
-            }
-            return isBool;
+           model.ForceRebuild3(true);
         }
     }
 }
